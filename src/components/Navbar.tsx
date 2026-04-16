@@ -1,10 +1,10 @@
+import { Link } from "react-router-dom";
+import bellIcon from "../assets/images/bellIcon.png";
 import dashboardIcon from "../assets/images/dashboardIcon.png";
 import mapIcon from "../assets/images/mapIcon.png";
-import avatarIcon from "../assets/images/profile.png";
-import bellIcon from "../assets/images/bellIcon.png";
 import messagesIcon from "../assets/images/messagesIcon.png";
+import avatarIcon from "../assets/images/profile.png";
 import { ROUTES } from "../constants/routes";
-import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const Navbar: React.FC = () => {
@@ -21,7 +21,7 @@ const Navbar: React.FC = () => {
             <div className="flex flex-1 justify-center items-center space-x-4 ">
               <div className="hidden md:flex space-x-2 border justify-between items-center rounded-full w-[262px] h-[36px] bg-[#F2F2F2]">
                 <Link
-                  to={`/${ROUTES.dashboard}`}
+                  to={`${ROUTES.dashboard}`}
                   className="flex items-center px-3 py-1 rounded-full text-gray-500 hover:text-black hover:bg-white space-x-2"
                 >
                   <img
