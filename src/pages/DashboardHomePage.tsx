@@ -1,41 +1,84 @@
 import { useEffect, useState } from "react";
 import PostHazzardReportUi from "../components/PostHazzardReportUi";
 import RecentPostCard from "../components/RecentPostCard";
-import TrendingPostCard from "../components/TrendingPostCard";
 import { HazardReport } from "../types/hazardreport";
-import { apiGetAllHazardReports, apiGetTrendingHazardReports } from "../services/api";
-import { announcement } from "..";
+import { apiGetAllHazardReports, apiGetAllAnnouncements } from "../services/api";
 import AirQuality from "../components/AirQuality";
 import { useAuth } from "../context/AuthContext";
-// import landingImage from '../assets/images/landing.png';
 
-// Define the expected API response
 interface HazardResponse {
   hazardReports: HazardReport[];
 }
 
+interface Announcement {
+  _id: string;
+  title: string;
+  description: string;
+  date?: string;
+  createdAt?: string;
+  profileImage?: string;
+  image?: string;
+}
+
+interface AnnouncementResponse {
+  announcements: Announcement[];
+}
+
 export default function DashboardHomePage() {
-const { user } = useAuth();
+  const { user } = useAuth();
 
   const [hazards, setHazards] = useState<HazardReport[]>([]);
-  const [trendinghazards, setTrendingHazards] = useState<HazardReport[]>([]);
   const [editingHazard, setEditingHazard] = useState<HazardReport | null>(null);
+
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [announcementLoading, setAnnouncementLoading] = useState(false);
+  const [announcementError, setAnnouncementError] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch Announcements
+  const fetchAnnouncements = async () => {
+    try {
+      setAnnouncementLoading(true);
+      setAnnouncementError(null);
+
+      const response = (await apiGetAllAnnouncements()) as unknown as {
+        data: AnnouncementResponse;
+      };
+
+      const sortedAnnouncements = (response.data.announcements || []).sort(
+        (a, b) =>
+          new Date(b.createdAt || b.date || "").getTime() -
+          new Date(a.createdAt || a.date || "").getTime()
+      );
+
+      setAnnouncements(sortedAnnouncements);
+    } catch (err) {
+      console.error("Error fetching announcements:", err);
+      setAnnouncementError("Failed to load announcements.");
+    } finally {
+      setAnnouncementLoading(false);
+    }
+  };
+
+  //  Fetch Hazards
   const fetchHazards = async () => {
     try {
       setLoading(true);
       setError(null);
+
       const response = (await apiGetAllHazardReports()) as unknown as {
         data: HazardResponse;
       };
-      const sortedHazards = (response.data.hazardReports || []).sort(
-      (a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-     );
-    setHazards(sortedHazards);
 
+      const sortedHazards = (response.data.hazardReports || []).sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() -
+          new Date(a.createdAt).getTime()
+      );
+
+      setHazards(sortedHazards);
     } catch (err) {
       console.error("Error fetching hazards:", err);
       setError("Failed to load hazard reports. Please try again.");
@@ -44,25 +87,63 @@ const { user } = useAuth();
     }
   };
 
-  // Get Hazards with Highest Upvotes
-    const getTrendingHazards = async () => {
-    try {
-      const response = (await apiGetTrendingHazardReports()) as unknown as {
-        data: HazardResponse;
-      };
-      setTrendingHazards(response.data.hazardReports || []);
-    } catch (err) {
-      console.error("Error fetching trending hazards:", err);
-    }
-  };
-  
-
-  // fetch on mount
   useEffect(() => {
     fetchHazards();
-    getTrendingHazards();
+    fetchAnnouncements();
   }, []);
 
+  const handleEditHazard = (hazard: HazardReport) => {
+    setEditingHazard(hazard);
+  };
+
+  //  Clean Announcement Rendering 
+  let announcementContent;
+
+  if (announcementLoading) {
+    announcementContent = (
+      <div className="p-4 text-sm text-gray-500">Loading announcements...</div>
+    );
+  } else if (announcementError) {
+    announcementContent = (
+      <div className="p-4 text-sm text-red-500">{announcementError}</div>
+    );
+  } else if (announcements.length > 0) {
+    announcementContent = announcements.map((post) => (
+      <div
+        key={post._id}
+        className="w-[95%] mx-auto rounded-lg flex gap-2 mb-3 justify-center items-center"
+      >
+        <div className="bg-gray-100 w-40 h-20 m-2 rounded-lg overflow-hidden">
+          <img
+            src={post.profileImage || post.image || "/placeholder.png"}
+            alt={post.title}
+            className="w-full h-full object-cover rounded-lg"
+          />
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-gray-800 leading-5">
+            {post.title}
+          </h3>
+          <p className="text-sm text-gray-500">
+            {post.createdAt
+              ? new Date(post.createdAt).toLocaleDateString()
+              : post.date || "No date"}
+          </p>
+          <p className="text-sm text-gray-700 leading-4">
+            {post.description}
+          </p>
+        </div>
+      </div>
+    ));
+  } else {
+    announcementContent = (
+      <div className="p-4 text-sm text-gray-500">
+        No announcements available.
+      </div>
+    );
+  }
+
+  // Loading State
   if (loading) {
     return (
       <div className="container mx-auto p-8">
@@ -73,6 +154,7 @@ const { user } = useAuth();
     );
   }
 
+  //  Error State
   if (error) {
     return (
       <div className="container mx-auto p-8">
@@ -88,31 +170,31 @@ const { user } = useAuth();
       </div>
     );
   }
-  const handleEditHazard = (hazard: HazardReport) => {
-   setEditingHazard(hazard);
-};
 
   return (
-  
-      <div className="container space-y-10">
-        <div className="w-[95%] mx-auto">
-          <div className="flex gap-x-4 my-4 md:my-6 ">
+    <div className="container space-y-10">
+      <div className="w-[95%] mx-auto">
+        <div className="flex gap-x-4 my-4 md:my-6">
 
-            {/*  CONDITIONAL UI HERE */}
-            <div className=" bg-white rounded-md md:w-2/3 w-full md:h-[200px] shadow-sm  ">
-              {user ? (
-                <PostHazzardReportUi  onSuccess={() => {fetchHazards(); setEditingHazard(null); }} editingHazard={editingHazard}/>
-              ) : (
-                <div className="bg-[url('./assets/images/clean-dirty-environment.png')] bg-cover bg-center bg-no-repeat rounded-lg shadow-md md:h-[200px]">
+          {/* REPORT SECTION */}
+          <div className="bg-white rounded-md md:w-2/3 w-full md:h-[200px] shadow-sm">
+            {user ? (
+              <PostHazzardReportUi
+                onSuccess={() => {
+                  fetchHazards();
+                  setEditingHazard(null);
+                }}
+                editingHazard={editingHazard}
+              />
+            ) : (
+              <div className="bg-[url('./assets/images/clean-dirty-environment.png')] bg-cover bg-center bg-no-repeat rounded-lg shadow-md md:h-[200px]">
                 <div className="p-6 text-center bg-black/20 rounded-lg backdrop-brightness-75 md:h-[200px] flex flex-col justify-center items-center">
                   <h3 className="text-2xl font-bold text-white mb-2">
                     Environmental Hazard Reporting
                   </h3>
-
                   <p className="text-white mb-4">
                     A Critical Step Towards a Safer Planet
                   </p>
-
                   <a
                     href="/login"
                     className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-700 transition"
@@ -120,113 +202,64 @@ const { user } = useAuth();
                     Make a report
                   </a>
                 </div>
-                </div>
-              )}
-            </div>
-
-            <div className="hidden md:block bg-white md:w-1/3 w-full rounded-md shadow-sm ">
-              <AirQuality />
-            </div>
+              </div>
+            )}
           </div>
-          <section className="mb-8 hidden md:block">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-800">
-                Trending Hazard Post ⚡
-              </h2>
-              <a
-                href="#!"
-                className="text-blue-600 font-medium hover:underline"
-              >
-                View all
-              </a>
-            </div>
-            <div className="w-[calc(100vw-255px)] overflow-x-scroll flex gap-6">
-              {trendinghazards.length > 0 ? (
-                trendinghazards.map((hazard) => (
-                  <TrendingPostCard key={hazard._id} hazard={hazard} />
+
+          {/* AIR QUALITY */}
+          <div className="hidden md:block bg-white md:w-1/3 w-full rounded-md shadow-sm">
+            <AirQuality />
+          </div>
+        </div>
+
+        <div className="flex gap-6 md:w-full">
+
+          {/* RECENT POSTS */}
+          <section className="mb-8 w-full">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              Recent Post
+            </h2>
+
+            <div className="grid grid-cols-1 gap-6">
+              {hazards.length > 0 ? (
+                hazards.map((hazard) => (
+                  <RecentPostCard
+                    key={hazard._id}
+                    hazard={hazard}
+                    onEdit={handleEditHazard}
+                  />
                 ))
               ) : (
-                <div className="flex items-center justify-center w-full h-32 text-gray-500">
-                  No trending hazards available
+                <div className="text-center py-12 bg-gray-50 rounded-lg">
+                  <p className="text-gray-500 mb-4">
+                    No hazard reports found
+                  </p>
+                  <button
+                    onClick={fetchHazards}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  >
+                    Refresh
+                  </button>
                 </div>
               )}
             </div>
           </section>
-          {/* <HazardReport /> */}
 
-          <div className="flex gap-6 md:w-full">
-            {/* Recent Post Section */}
-            <section className="mb-8 w-full">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-gray-800">Recent Post</h2>
-                <a
-                  href="#!"
-                  className="text-blue-600 font-medium hover:underline" >
-                  View all
-                </a>
-              </div>
+          {/* ANNOUNCEMENTS */}
+          <section className="md:w-[65%] hidden md:block sticky top-20 h-[80vh]">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              Announcement
+            </h2>
 
-              <div className="grid grid-cols-1 gap-6">
-                {hazards.length > 0 ? (
-                  hazards.map((hazard: HazardReport) => (
-                  <RecentPostCard
-                  key={hazard._id}
-                  hazard={hazard}
-                  onEdit={handleEditHazard}
-                   />
-                ))
-                ) : (
-                  <div className="text-center py-12 bg-gray-50 rounded-lg">
-                    <p className="text-gray-500 mb-4">No hazard reports found</p>
-                    <button
-                      onClick={fetchHazards}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                    >
-                      Refresh
-                    </button>
-                  </div>
-                )}
+            <div className="sticky top-20 h-[80vh] bg-white overflow-y-auto scroll-smooth rounded-lg shadow-sm hover:shadow-md transition">
+              <div className="rounded-lg">
+                {announcementContent}
               </div>
-            </section>
+            </div>
+          </section>
 
-            {/* Announcement Section */}
-            <section className=" md:w-[65%] hidden md:block sticky top-20 h-[80vh]">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-gray-800">
-                  Announcement
-                </h2>
-              </div>
-              <div className="sticky top-20 h-[80vh] bg-white overflow-y-auto scrollbar-thick scrollbar-thumb-gray-100 scrollbar-track-gray-100 rounded-lg shadow-sm hover:shadow-md transition">
-                <div className=" rounded-lg">
-                  {announcement.map((post) => (
-                    <div
-                      key={post.id}
-                      className="w-[95%] mx-auto rounded-lg flex gap-2 mb-3  justify-center items-center"
-                    >
-                      <div className="bg-red-400 w-40 h-20 m-2 rounded-lg">
-                        <img
-                          // src={post.profileImage}
-                          src={post.profileImage}
-                          alt={post.title}
-                          className="w-full h-full object-cover rounded-lg"
-                        />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-semibold text-gray-800 leading-5">
-                          {post.title}
-                        </h3>
-                        <p className="text-sm text-gray-500">{post.date}</p>
-                        <p className="text-sm text-gray-700 leading-4">
-                          {post.description}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-          </div>
         </div>
       </div>
+    </div>
   );
 }
