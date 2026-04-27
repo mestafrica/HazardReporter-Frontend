@@ -13,8 +13,16 @@ export const apiGetAllHazardReports = async (): Promise<AxiosResponse<HazardRepo
 };
 
 // GET trending hazard reports
-export const apiGetTrendingHazardReports = async (): Promise<AxiosResponse<HazardReport[]>> => {
-  return apiClient.get<HazardReport[]>("/hazard/getall?sortBy=upvotes&order=desc");
+//export const apiGetTrendingHazardReports = async (): Promise<AxiosResponse<HazardReport[]>> => {
+//return apiClient.get<HazardReport[]>("/hazard-report/getall?sortBy=upvotes&order=desc");
+//};
+
+export const apiGetAllAnnouncements = async () => {
+  return apiClient.get("/announcement/getall");
+};
+
+export const apiGetAirQuality = async (lat: number, lon: number) => {
+  return apiClient.get(`/air-quality?lat=${lat}&lon=${lon}`);
 };
 
 // GET hazard report by ID
