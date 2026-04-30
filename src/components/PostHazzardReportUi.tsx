@@ -105,25 +105,34 @@ const PostHazzardReportUi: React.FC<PostHazzardReportUiProps> = ({
       "
           >
             {/* Header */}
-            <div className="space-y-2 text-center sm:text-left">
-              <DialogTitle className="text-xl sm:text-2xl font-bold text-gray-800">
-                Report Environmental Hazards
-              </DialogTitle>
-              <Description className="text-gray-500 text-sm sm:text-base leading-relaxed">
-                Submit a report on pollution by providing details, photos, and
-                location to help us track and address environmental concerns.
-              </Description>
+            <div className="flex items-start justify-between">
+              <div className="space-y-2">
+                <DialogTitle className="text-xl sm:text-2xl font-bold text-gray-800">
+                  {editingHazard
+                    ? "Edit Hazard Report"
+                    : "Report Environmental Hazards"}
+                </DialogTitle>
+                <Description className="text-gray-500 text-sm sm:text-base leading-relaxed">
+                  {editingHazard
+                    ? "Update the details of your hazard report"
+                    : "Submit a report on pollution by providing details, photos, and location to help us track and address environmental concerns."}
+                </Description>
+              </div>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition text-xl"
+              >
+                ✕
+              </button>
             </div>
 
             {/* Form */}
             <div className="w-full">
               <HazardForm
-               editingHazard={editingHazard}
-               onSuccess={() => {
-               setIsOpen(false); // Close modal
-               onSuccess(); // Re-fetch hazards
-  }}
-/>
+                editingHazard={editingHazard}
+                onSuccess={onSuccess}
+                onClose={() => setIsOpen(false)}
+              />
             </div>
           </DialogPanel>
         </div>

@@ -1,21 +1,20 @@
 "use client";
-
-// import React, { useState } from "react";
-import Swal from "sweetalert2";
-import { HazardReport } from "../types/hazardreport";
-import { apiNewHazardReporter, apiUpdateHazardReport } from "../services/api";
-import SubmitButton from "./SubmitButton";
+// import Swal from "sweetalert2";
 import Autocomplete from "react-google-autocomplete";
+import { apiNewHazardReporter, apiUpdateHazardReport } from "../services/api";
+import { HazardReport } from "../types/hazardreport";
+import SubmitButton from "./SubmitButton";
 // import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 // import type { LatLngExpression, LeafletMouseEvent } from "leaflet";
 // import "leaflet/dist/leaflet.css";
-import { useAuth } from "../context/AuthContext";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
 type HazardFormProps = {
   onSuccess: () => void;
+  onClose?: () => void;
   editingHazard: HazardReport | null;
 };
 
@@ -85,8 +84,13 @@ type HazardFormProps = {
 // }
 
 //  Main Hazard Form
-export default function HazardForm({ onSuccess, editingHazard }: HazardFormProps) {
+export default function HazardForm({
+  onSuccess,
+  onClose,
+  editingHazard,
+}: HazardFormProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // const [location, setLocation] = useState<string>("");
   const navigate = useNavigate();
@@ -100,7 +104,7 @@ export default function HazardForm({ onSuccess, editingHazard }: HazardFormProps
     setTimeout(() => navigate("/login"), 1500);
     return null;
   }
-   const [locationData, setLocationData] = useState({
+  const [locationData, setLocationData] = useState({
     location: editingHazard?.location || "",
     city: editingHazard?.city || "",
     country: editingHazard?.country || "",
@@ -112,32 +116,48 @@ export default function HazardForm({ onSuccess, editingHazard }: HazardFormProps
     event.preventDefault();
 
     try {
+      setIsSubmitting(true);
       const form = event.target as HTMLFormElement;
       const formData = new FormData(form);
       // formData.append("location", location);
 
       if (editingHazard) {
-      await apiUpdateHazardReport(editingHazard._id, {
-      title: formData.get("title")  as string,
-      description: formData.get("description")  as string,
-     });
-} else {
-  await apiNewHazardReporter(formData);
-}
+        await apiUpdateHazardReport(editingHazard._id, {
+          title: formData.get("title") as string,
+          description: formData.get("description") as string,
+        });
+        toast.success("Hazard updated successfully!", {
+          position: "top-right",
+          autoClose: 2000,
+        });
+      } else {
+        await apiNewHazardReporter(formData);
+        toast.success("Hazard reported successfully!", {
+          position: "top-right",
+          autoClose: 2000,
+        });
+      }
       onSuccess();
 
-      Swal.fire({
-        icon: "success",
-        title: editingHazard ? "Hazard Updated Successfully" : "Hazard Reported Successfully",
-        showConfirmButton: false,
-        timer: 1500,
-      });
+      // Auto-close modal after brief delay
+      setTimeout(() => {
+        if (onClose) {
+          onClose();
+        }
+      }, 500);
     } catch (error) {
-      Swal.fire({
-        icon: "error",
-        title: "Failed to Report Hazard",
-        text: "Something went wrong!",
-      });
+      console.error("Form submission error:", error);
+      toast.error(
+        editingHazard
+          ? "Failed to update hazard. Please try again."
+          : "Failed to report hazard. Please try again.",
+        {
+          position: "top-right",
+          autoClose: 2000,
+        }
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -286,80 +306,83 @@ export default function HazardForm({ onSuccess, editingHazard }: HazardFormProps
               )}
             </div>
           </div>
-<div className="space-y-4">
-  <div>
-    <label className="block text-sm font-medium text-gray-700">
-      Location
-    </label>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Location
+              </label>
 
-    <Autocomplete
-      apiKey={import.meta.env.VITE_GOOGLE_API_KEY}
-      options={{
-        types: ["geocode"],
-      }}
-      defaultValue={locationData.location}
-      onPlaceSelected={(place) => {
-        const lat = place.geometry?.location?.lat?.();
-        const lng = place.geometry?.location?.lng?.();
+              <Autocomplete
+                apiKey={import.meta.env.VITE_GOOGLE_API_KEY}
+                options={{
+                  types: ["geocode"],
+                }}
+                defaultValue={locationData.location}
+                onPlaceSelected={(place) => {
+                  const lat = place.geometry?.location?.lat?.();
+                  const lng = place.geometry?.location?.lng?.();
 
-        const components = place.address_components || [];
+                  const components = place.address_components || [];
 
-        const city =
-          components.find((c: any) => c.types.includes("locality"))?.long_name ||
-          components.find((c: any) => c.types.includes("administrative_area_level_2"))?.long_name ||
-          "";
+                  const city =
+                    components.find((c: any) => c.types.includes("locality"))?.long_name ||
+                    components.find((c: any) => c.types.includes("administrative_area_level_2"))?.long_name ||
+                    "";
 
-        const country =
-          components.find((c: any) => c.types.includes("country"))?.long_name || "";
+                  const country =
+                    components.find((c: any) => c.types.includes("country"))?.long_name || "";
 
-        setLocationData({
-          location: place.formatted_address || place.name || "",
-          city,
-          country,
-          latitude: lat ? String(lat) : "",
-          longitude: lng ? String(lng) : "",
-        });
-      }}
-      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm
+                  setLocationData({
+                    location: place.formatted_address || place.name || "",
+                    city,
+                    country,
+                    latitude: lat ? String(lat) : "",
+                    longitude: lng ? String(lng) : "",
+                  });
+                }}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm
       focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-      placeholder="Search for a location"
-    />
-  </div>
+                placeholder="Search for a location"
+              />
+            </div>
 
- <div>
-  <label htmlFor="city-preview" className="block text-sm font-medium text-gray-700">
-    City
-  </label>
-  <input
-    id="city-preview"
-    type="text"
-    value={locationData.city}
-    readOnly
-    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 sm:text-sm"
-  />
-</div>
+            <div>
+              <label htmlFor="city-preview" className="block text-sm font-medium text-gray-700">
+                City
+              </label>
+              <input
+                id="city-preview"
+                type="text"
+                value={locationData.city}
+                readOnly
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 sm:text-sm"
+              />
+            </div>
 
- <div>
-  <label htmlFor="country-preview" className="block text-sm font-medium text-gray-700">
-    Country
-  </label>
-  <input
-    id="country-preview"
-    type="text"
-    value={locationData.country}
-    readOnly
-    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 sm:text-sm"
-  />
-</div>
+            <div>
+              <label htmlFor="country-preview" className="block text-sm font-medium text-gray-700">
+                Country
+              </label>
+              <input
+                id="country-preview"
+                type="text"
+                value={locationData.country}
+                readOnly
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 sm:text-sm"
+              />
+            </div>
 
-  <input type="hidden" name="location" value={locationData.location} />
-  <input type="hidden" name="city" value={locationData.city} />
-  <input type="hidden" name="country" value={locationData.country} />
-  <input type="hidden" name="latitude" value={locationData.latitude} />
-  <input type="hidden" name="longitude" value={locationData.longitude} />
-</div>
-        
-          <SubmitButton />
+            <input type="hidden" name="location" value={locationData.location} />
+            <input type="hidden" name="city" value={locationData.city} />
+            <input type="hidden" name="country" value={locationData.country} />
+            <input type="hidden" name="latitude" value={locationData.latitude} />
+            <input type="hidden" name="longitude" value={locationData.longitude} />
+          </div>
+
+          <SubmitButton
+            isLoading={isSubmitting}
+            label={editingHazard ? "Update Hazard" : "Report Hazard"}
+          />
         </form>
       </div>
     </div>
