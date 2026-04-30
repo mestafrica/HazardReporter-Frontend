@@ -1,3 +1,5 @@
+import { RotateCw } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import bellIcon from "../assets/images/bellIcon.png";
 import dashboardIcon from "../assets/images/dashboardIcon.png";
@@ -7,8 +9,24 @@ import avatarIcon from "../assets/images/profile.png";
 import { ROUTES } from "../constants/routes";
 import { useAuth } from "../context/AuthContext";
 
-const Navbar: React.FC = () => {
+interface NavbarProps {
+  onRefresh?: () => Promise<void>;
+}
+
+const Navbar: React.FC<NavbarProps> = ({ onRefresh }) => {
   const { isLoggedIn, user } = useAuth();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (onRefresh && !isRefreshing) {
+      setIsRefreshing(true);
+      try {
+        await onRefresh();
+      } finally {
+        setIsRefreshing(false);
+      }
+    }
+  };
 
   return (
     <div className="">
@@ -63,6 +81,25 @@ const Navbar: React.FC = () => {
                     {user?.userName || "User"}
                   </p>
                 </div>
+
+                {/* Refresh Button */}
+                {onRefresh && (
+                  <button
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    className={`hidden md:flex items-center justify-center p-2 rounded-full transition ${isRefreshing
+                        ? "text-gray-400 cursor-not-allowed"
+                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+                      }`}
+                    title="Refresh data"
+                  >
+                    <RotateCw
+                      size={20}
+                      className={isRefreshing ? "animate-spin" : ""}
+                    />
+                  </button>
+                )}
+
                 <div className="hidden md:flex relative">
                   <img
                     src={bellIcon}

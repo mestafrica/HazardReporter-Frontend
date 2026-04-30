@@ -2,30 +2,38 @@ import { AnnouncementSection } from "../components/AnnouncementSection";
 import { HazardSection } from "../components/HazardSection";
 import { PostCreationSection } from "../components/PostCreationSection";
 import { useAuth } from "../context/AuthContext";
-import { useAnnouncements } from "../hooks/useAnnouncements";
-import { useHazards } from "../hooks/useHazards";
+import { useCoordinatedLoading } from "../hooks/useCoordinatedLoading";
 
 export default function DashboardHomePage() {
   const { user } = useAuth();
 
   const {
-    hazards,
-    loading,
-    loadingMore,
-    hasMore,
-    error,
-    editingHazard,
-    setEditingHazard,
-    fetchHazards,
-    loadMore,
-  } = useHazards();
+    hazardsData: {
+      hazards,
+      loading,
+      loadingMore,
+      hasMore,
+      error,
+      editingHazard,
+      setEditingHazard,
+      fetchHazards,
+      loadMore,
+    },
+    announcementsData: {
+      announcements,
+      loading: announcementLoading,
+      error: announcementError,
+      fetchAnnouncements,
+    },
+    isInitialLoading,
+    refreshAll,
+  } = useCoordinatedLoading();
 
-  const {
-    announcements,
-    loading: announcementLoading,
-    error: announcementError,
-    fetchAnnouncements,
-  } = useAnnouncements();
+  // Store refreshAll in sessionStorage so Navbar can access it
+  // This is a workaround since Navbar is in a different component tree
+  if (typeof window !== "undefined") {
+    (window as any).__dashboardRefresh = refreshAll;
+  }
 
   // Loading State
   if (loading) {
@@ -63,6 +71,7 @@ export default function DashboardHomePage() {
           editingHazard={editingHazard}
           onSuccess={fetchHazards}
           onEditClear={() => setEditingHazard(null)}
+          isLoading={isInitialLoading}
         />
 
         <div className="flex gap-6 md:w-full">
