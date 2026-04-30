@@ -1,18 +1,17 @@
-import { useEffect, useState } from "react";
 import { WindIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 import { CiLocationOn } from "react-icons/ci";
 import { apiGetAirQuality } from "../services/api";
 
 interface AirQualityResponse {
   aqi?: number;
-  data?: {
-    aqi?: number;
-  };
-}
+  city?: string;
+};
+
 
 export default function AirQuality() {
   const [aqi, setAqi] = useState<number | null>(null);
-  const [locationLabel, setLocationLabel] = useState("Your current Location");
+  const [locationLabel, setLocationLabel] = useState<string>("Loading...");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,7 +26,6 @@ export default function AirQuality() {
 
   const fetchAirQuality = async (latitude: number, longitude: number) => {
     try {
-      setLoading(true);
       setError(null);
 
       const response = (await apiGetAirQuality(latitude, longitude)) as unknown as {
@@ -35,9 +33,11 @@ export default function AirQuality() {
       };
 
       const airQualityValue =
-        response.data?.aqi ?? response.data?.data?.aqi ?? null;
+        response.data?.aqi ?? null;
+      const cityName = response.data?.city ?? "Unknown Location";
 
       setAqi(airQualityValue);
+      setLocationLabel(cityName);
     } catch (err) {
       console.error("Error fetching air quality:", err);
       setError("Unable to load air quality.");
@@ -46,33 +46,50 @@ export default function AirQuality() {
     }
   };
 
-  const getCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      setError("Geolocation is not supported by this browser.");
+  const fetchLocationByIP = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch('https://get.geojs.io/v1/ip/geo.json');
+      const data = await response.json();
+      console.log("IP Geolocation:", data);
+      fetchAirQuality(data.latitude, data.longitude);
+    } catch (err) {
+      console.error("IP geolocation error:", err);
+      setError("Unable to determine location.");
       setLoading(false);
-      return;
     }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        fetchAirQuality(latitude, longitude);
-      },
-      (err) => {
-        console.error("Location error:", err);
-        setError("Location access denied.");
-        setLoading(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    );
   };
 
+  // const getCurrentLocation = () => {
+    // if (!navigator.geolocation) {
+  //     console.log("Geolocation not supported, using IP-based geolocation.");
+  //     fetchLocationByIP();
+  //     return;
+  //   }
+
+  //   navigator.geolocation.getCurrentPosition(
+  //     (position) => {
+  //       const { latitude, longitude } = position.coords;
+
+  //       console.log("GPS Geolocation: Valid Ghana coordinates");
+  //       fetchAirQuality(latitude, longitude);
+  //     },
+  //     (err) => {
+  //       console.error("GPS error:", err);
+  //       console.log("Falling back to IP geolocation.");
+  //       fetchLocationByIP();
+  //     },
+  //     {
+  //       enableHighAccuracy: true,
+  //       timeout: 10000,
+  //       maximumAge: 0,
+  //     }
+  //   );
+  // };
+
   useEffect(() => {
-    getCurrentLocation();
+    fetchLocationByIP();
   }, []);
 
   return (
@@ -120,12 +137,12 @@ export default function AirQuality() {
             {aqi <= 50
               ? "Good air quality"
               : aqi <= 100
-              ? "Moderate air quality"
-              : aqi <= 150
-              ? "Unhealthy for sensitive groups"
-              : aqi <= 200
-              ? "Unhealthy"
-              : "Very unhealthy"}
+                ? "Moderate air quality"
+                : aqi <= 150
+                  ? "Unhealthy for sensitive groups"
+                  : aqi <= 200
+                    ? "Unhealthy"
+                    : "Very unhealthy"}
           </p>
         )}
 
