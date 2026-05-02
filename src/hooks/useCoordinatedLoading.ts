@@ -6,6 +6,7 @@ interface UseCoordinatedLoadingReturn {
   hazardsData: ReturnType<typeof useHazards>;
   announcementsData: ReturnType<typeof useAnnouncements>;
   isInitialLoading: boolean;
+  isRefreshing: boolean;
   refreshAll: () => Promise<void>;
 }
 
@@ -35,6 +36,7 @@ export const useCoordinatedLoading = (): UseCoordinatedLoadingReturn => {
     hazardsData,
     announcementsData,
     isInitialLoading,
+    isRefreshing,
     refreshAll,
   };
 };
