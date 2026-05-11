@@ -1,13 +1,13 @@
-import { CiShare2 } from "react-icons/ci";
-import { HazardReport } from "../types/hazardreport";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import { CircleArrowUp } from "lucide-react";
-import { apiUpvoteHazard } from "../services/api";
+import { CircleArrowUp, X } from "lucide-react";
 import { useRef, useState } from "react";
-import { FaWhatsapp, FaTwitter, FaInstagram } from "react-icons/fa";
+import { CiShare2 } from "react-icons/ci";
+import { FaInstagram, FaTwitter, FaWhatsapp } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
 import { useAuth } from "../context/AuthContext";
+import { apiUpvoteHazard } from "../services/api";
+import { HazardReport } from "../types/hazardreport";
 
 dayjs.extend(relativeTime);
 
@@ -16,7 +16,6 @@ interface RecentPostProps {
   readonly onEdit?: (hazard: HazardReport) => void;
 }
 
-const baseUrl = import.meta.env.VITE_IMAGE_BASE_URL || "";
 
 export default function RecentPostCard({
   hazard,
@@ -28,11 +27,8 @@ export default function RecentPostCard({
   const [upvotedBy, setUpvotedBy] = useState<string[]>(
     hazard.upvotedBy ?? []
   );
-  const [commentText, setCommentText] = useState("");
-  const [comments, setComments] = useState<
-    { id: number; author: string; text: string; time: string }[]
-  >([]);
-  const [showComments, setShowComments] = useState(false);
+  
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const userId = user?.id;
@@ -51,6 +47,7 @@ export default function RecentPostCard({
 
     try {
       const res = await apiUpvoteHazard(hazard._id);
+      console.log(res);
       const updated = res.data.hazardReport;
 
       setUpvotes(updated.upvotes);
@@ -59,8 +56,8 @@ export default function RecentPostCard({
       const backendMsg =
         err && typeof err === "object" && "response" in err
           ? (err as {
-              response?: { data?: { message?: string } };
-            }).response?.data?.message
+            response?: { data?: { message?: string } };
+          }).response?.data?.message
           : undefined;
 
       toast.error(backendMsg || "Upvote failed");
@@ -68,24 +65,9 @@ export default function RecentPostCard({
     }
   };
 
-  const handleAddComment = () => {
-    if (!commentText.trim()) return;
-
-    const newComment = {
-      id: Date.now(),
-      author: user?.userName || "Anonymous",
-      text: commentText.trim(),
-      time: "Just now",
-    };
-
-    setComments((prev) => [newComment, ...prev]);
-    setCommentText("");
-    toast.success("Comment added");
-  };
-
   const handleShare = (platform: "whatsapp" | "twitter" | "instagram") => {
     const text = `${hazard.title}\n\n${hazard.description}`;
-    const url = globalThis.location.href;
+    const url = `${globalThis.location.origin}/hazard/${hazard._id}`;
     const shareText = encodeURIComponent(`${text}\n${url}`);
 
     if (platform === "whatsapp") {
@@ -167,9 +149,8 @@ export default function RecentPostCard({
           <span className="flex items-center gap-2">
             <CircleArrowUp
               onClick={handleUpvote}
-              className={`cursor-pointer transition ${
-                hasUpvoted ? "text-blue-600" : "text-gray-400"
-              }`}
+              className={`cursor-pointer transition ${hasUpvoted ? "text-blue-600" : "text-gray-400"
+                }`}
             />
             {`${upvotes} upvotes`}
           </span>
@@ -184,7 +165,7 @@ export default function RecentPostCard({
               </button>
             )}
 
-            <button
+            {/* <button
               onClick={() => {
                 setShowComments((prev) => {
                   const next = !prev;
@@ -199,33 +180,21 @@ export default function RecentPostCard({
               {showComments
                 ? `Hide Comments (${comments.length})`
                 : `Comments (${comments.length})`}
-            </button>
+            </button> */}
 
             <div className="flex items-center gap-3">
-              <CiShare2 className="text-gray-600" />
-
-              <FaWhatsapp
-                onClick={() => handleShare("whatsapp")}
-                className="text-green-500 text-lg cursor-pointer hover:scale-110 hover:opacity-80 transition"
-                title="Share to WhatsApp"
-              />
-
-              <FaTwitter
-                onClick={() => handleShare("twitter")}
-                className="text-blue-400 text-lg cursor-pointer hover:scale-110 hover:opacity-80 transition"
-                title="Share to X"
-              />
-
-              <FaInstagram
-                onClick={() => handleShare("instagram")}
-                className="text-pink-500 text-lg cursor-pointer hover:scale-110 hover:opacity-80 transition"
-                title="Share to Instagram"
-              />
+              <button
+                onClick={() => setIsShareModalOpen(true)}
+                className="hover:bg-gray-100 p-2 rounded-full transition"
+                title="Share"
+              >
+                <CiShare2 className="text-gray-600 text-xl" />
+              </button>
             </div>
           </div>
         </div>
 
-        {showComments && (
+        {/* {showComments && (
           <div className="mt-4 border-t pt-4 space-y-3">
             <h4 className="text-sm font-semibold text-gray-700">Comments</h4>
 
@@ -275,8 +244,65 @@ export default function RecentPostCard({
               )}
             </div>
           </div>
-        )}
+        )} */}
       </div>
+
+      {isShareModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h3 className="text-lg font-semibold text-gray-800">Share Post</h3>
+              <button
+                onClick={() => setIsShareModalOpen(false)}
+                className="p-1 rounded-full hover:bg-gray-100 text-gray-500 transition"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 flex items-center justify-center gap-8">
+              <button
+                onClick={() => {
+                  handleShare("whatsapp");
+                  setIsShareModalOpen(false);
+                }}
+                className="flex flex-col items-center gap-2 group"
+              >
+                <div className="p-3 bg-green-50 rounded-full group-hover:scale-110 transition">
+                  <FaWhatsapp className="text-green-500 text-3xl" />
+                </div>
+                <span className="text-xs font-medium text-gray-600">WhatsApp</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  handleShare("twitter");
+                  setIsShareModalOpen(false);
+                }}
+                className="flex flex-col items-center gap-2 group"
+              >
+                <div className="p-3 bg-blue-50 rounded-full group-hover:scale-110 transition">
+                  <FaTwitter className="text-blue-400 text-3xl" />
+                </div>
+                <span className="text-xs font-medium text-gray-600">Twitter</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  handleShare("instagram");
+                  setIsShareModalOpen(false);
+                }}
+                className="flex flex-col items-center gap-2 group"
+              >
+                <div className="p-3 bg-pink-50 rounded-full group-hover:scale-110 transition">
+                  <FaInstagram className="text-pink-500 text-3xl" />
+                </div>
+                <span className="text-xs font-medium text-gray-600">Instagram</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ToastContainer />
     </>

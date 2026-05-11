@@ -1,16 +1,13 @@
 "use client";
-// import Swal from "sweetalert2";
-import Autocomplete from "react-google-autocomplete";
-import { apiNewHazardReporter, apiUpdateHazardReport } from "../services/api";
-import { HazardReport } from "../types/hazardreport";
-import SubmitButton from "./SubmitButton";
-// import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
-// import type { LatLngExpression, LeafletMouseEvent } from "leaflet";
-// import "leaflet/dist/leaflet.css";
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "../context/AuthContext";
+import { apiNewHazardReporter, apiUpdateHazardReport } from "../services/api";
+import { HazardReport } from "../types/hazardreport";
+import { LocationAutocomplete } from "./LocationAutoComplete";
+import SubmitButton from "./SubmitButton";
 
 type HazardFormProps = {
   onSuccess: () => void;
@@ -18,70 +15,6 @@ type HazardFormProps = {
   editingHazard: HazardReport | null;
 };
 
-// 🌍 Sub-component: Select location using OpenStreetMap
-// function LocationPicker({
-//   onLocationSelect,
-// }: {
-//   onLocationSelect: (address: string) => void;
-// }) {
-//   const [position, setPosition] = useState<[number, number] | null>(null);
-//   const [address, setAddress] = useState<string>("");
-
-//   function LocationMarker() {
-//     useMapEvents({
-//       click: async (e: LeafletMouseEvent) => {
-//         const { lat, lng } = e.latlng;
-//         setPosition([lat, lng]);
-
-//         try {
-//           // Reverse geocode with Nominatim API
-//           const response = await fetch(
-//             `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
-//             {
-//               headers: {
-//                 "Accept-Language": "en",
-//                 "User-Agent": "hazard-reporter-app/1.0 (contact@example.com)",
-//               },
-//             }
-//           );
-//           const data = await response.json();
-//           const newAddress = data.display_name || "Unknown location";
-
-//           setAddress(newAddress);
-//           onLocationSelect(newAddress);
-//         } catch (err) {
-//           console.error("Reverse geocoding failed:", err);
-//           setAddress("Unknown location");
-//           onLocationSelect("Unknown location");
-//         }
-//       },
-//     });
-
-//     return position ? <Marker position={position as LatLngExpression} /> : null;
-//   }
-
-//   const center: LatLngExpression = [5.6037, -0.187]; // Accra
-
-//   return (
-//     <div className="flex flex-col gap-2">
-//       <div className="h-64 w-full rounded-lg overflow-hidden">
-//         <MapContainer center={center} zoom={13} className="h-full w-full z-0">
-//           <TileLayer
-//             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-//             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-//           />
-//           <LocationMarker />
-//         </MapContainer>
-//       </div>
-
-//       {address && (
-//         <p className="text-sm text-gray-700 mt-1">
-//           📍 <span className="font-medium">Selected:</span> {address}
-//         </p>
-//       )}
-//     </div>
-//   );
-// }
 
 //  Main Hazard Form
 export default function HazardForm({
@@ -233,7 +166,6 @@ export default function HazardForm({
             </div>
 
             {/* Upload Images */}
-            {/* Upload Images */}
             <div className="flex-1 flex flex-col">
               <label
                 htmlFor="images"
@@ -261,7 +193,7 @@ export default function HazardForm({
               <input
                 type="file"
                 id="images"
-                name="images"
+                name="files"
                 required={!editingHazard}
                 multiple
                 accept="image/*"
@@ -312,37 +244,9 @@ export default function HazardForm({
                 Location
               </label>
 
-              <Autocomplete
-                apiKey={import.meta.env.VITE_GOOGLE_API_KEY}
-                options={{
-                  types: ["geocode"],
-                }}
+              <LocationAutocomplete
                 defaultValue={locationData.location}
-                onPlaceSelected={(place) => {
-                  const lat = place.geometry?.location?.lat?.();
-                  const lng = place.geometry?.location?.lng?.();
-
-                  const components = place.address_components || [];
-
-                  const city =
-                    components.find((c: any) => c.types.includes("locality"))?.long_name ||
-                    components.find((c: any) => c.types.includes("administrative_area_level_2"))?.long_name ||
-                    "";
-
-                  const country =
-                    components.find((c: any) => c.types.includes("country"))?.long_name || "";
-
-                  setLocationData({
-                    location: place.formatted_address || place.name || "",
-                    city,
-                    country,
-                    latitude: lat ? String(lat) : "",
-                    longitude: lng ? String(lng) : "",
-                  });
-                }}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm
-      focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="Search for a location"
+                onPlaceSelected={(data) => setLocationData(data)}
               />
             </div>
 
