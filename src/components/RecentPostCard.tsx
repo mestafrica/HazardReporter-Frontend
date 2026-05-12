@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { CircleArrowUp, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { CiShare2 } from "react-icons/ci";
 import { FaInstagram, FaTwitter, FaWhatsapp } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
@@ -27,10 +27,9 @@ export default function RecentPostCard({
   const [upvotedBy, setUpvotedBy] = useState<string[]>(
     hazard.upvotedBy ?? []
   );
-  
+
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
-  const inputRef = useRef<HTMLInputElement>(null);
   const userId = user?.id;
 
   const canEdit =
@@ -121,7 +120,7 @@ export default function RecentPostCard({
                   const imageSrc =
                     img.startsWith("http://") || img.startsWith("https://")
                       ? img
-                      : `${baseUrl}/${img}`;
+                      : "No Image";
 
                   return (
                     <div
@@ -259,7 +258,7 @@ export default function RecentPostCard({
                 <X size={20} />
               </button>
             </div>
-            
+
             <div className="p-6 flex items-center justify-center gap-8">
               <button
                 onClick={() => {
