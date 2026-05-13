@@ -30,6 +30,9 @@ export const apiGetHazardReportById = async (id: number): Promise<AxiosResponse<
   return apiClient.get<HazardReport>(`/hazard/${id}`);
 };
 
+// Get the shareable frontend URL for a hazard report
+export const getHazardReportUrl = (id: string) => `${window.location.origin}/hazard/${id}`;
+
 // PATCH upvote hazard report by ID
 export const apiUpvoteHazard = async (id: string) => {
   return apiClient.patch(`/hazard/upvote/${id}`);

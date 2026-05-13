@@ -6,7 +6,7 @@ import { CiShare2 } from "react-icons/ci";
 import { FaInstagram, FaTwitter, FaWhatsapp } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
 import { useAuth } from "../context/AuthContext";
-import { apiUpvoteHazard } from "../services/api";
+import { apiUpvoteHazard, getHazardReportUrl } from "../services/api";
 import { HazardReport } from "../types/hazardreport";
 
 dayjs.extend(relativeTime);
@@ -46,11 +46,15 @@ export default function RecentPostCard({
 
     try {
       const res = await apiUpvoteHazard(hazard._id);
-      console.log(res);
-      const updated = res.data.hazardReport;
+      const { message, upvoted, upvotes: newUpvotes } = res.data;
 
-      setUpvotes(updated.upvotes);
-      setUpvotedBy(updated.upvotedBy);
+      setUpvotes(newUpvotes);
+      setUpvotedBy((prev) =>
+        upvoted
+          ? [...prev, userId]
+          : prev.filter((id) => id !== userId)
+      );
+      toast.success(message);
     } catch (err: unknown) {
       const backendMsg =
         err && typeof err === "object" && "response" in err
@@ -66,7 +70,7 @@ export default function RecentPostCard({
 
   const handleShare = (platform: "whatsapp" | "twitter" | "instagram") => {
     const text = `${hazard.title}\n\n${hazard.description}`;
-    const url = `${globalThis.location.origin}/hazard/${hazard._id}`;
+    const url = getHazardReportUrl(hazard._id);
     const shareText = encodeURIComponent(`${text}\n${url}`);
 
     if (platform === "whatsapp") {

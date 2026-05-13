@@ -9,6 +9,7 @@ import { ROUTES } from "./constants/routes";
 import DashboardHomePage from "./pages/DashboardHomePage";
 import CoordinatesAndLocation from "./components/CoordinatesAndLocation";
 import MapPage from "./pages/mapPage";
+import HazardDetailPage from "./pages/HazardDetailPage";
 
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
+          <Route path="/hazard/:id" element={<HazardDetailPage />} />
           <Route path="/password-recovery" element={<PasswordRecovery />} />
           <Route
             path="/co-ordinates-location"
